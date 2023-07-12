@@ -107,7 +107,7 @@ static void pipe_source_load(pipe_source_t *context)
             TRACE("loading frame: %d", frame.id());
             
             // Load image received from subscriber.
-            gs_image_buffer_init_raw_pixels(
+            gs_image_buffer_init_from_raw_pixels(
                 &context->image,
                 (uint8_t *)frame.buffer().data(),
                 frame.buffer().size(),
@@ -123,12 +123,7 @@ static void pipe_source_load(pipe_source_t *context)
         
             // Init texture.
             obs_enter_graphics();
-            if (!context->loaded) {
-                gs_image_buffer_init_texture(&context->image);
-                context->loaded = !!context->image.texture;
-            } else {
-                gs_image_buffer_update_texture(&context->image);
-            }
+            gs_image_buffer_init_texture(&context->image);
             obs_leave_graphics();
 
             if (!context->loaded) {

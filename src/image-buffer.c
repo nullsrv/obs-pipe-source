@@ -35,20 +35,27 @@ static void gs_image_buffer_init_internal(
     uint8_t                     *buffer,
     size_t                      length,
     enum gs_image_alpha_mode    alpha_mode,
-    uint64_t                    *mem_usage,
-    bool                        is_raw
+    bool                        is_raw,
+    uint32_t                    width,
+    uint32_t                    height,
+    enum gs_color_format        color_format,
+    enum gs_color_space         color_space
 ) {
     if (!image) {
         return;
     }
-    gs_texture_t *saved = image->texture; // HACK: fix this
-    memset(image, 0, sizeof(*image));
+    
+    if (!image->loaded) {
+        memset(image, 0, sizeof(*image));
+    }
 
     if (!buffer) {
         return;
     }
-    image->texture = saved; // HACK: fix this
 
+    uint32_t                prev_width  = image->width;
+    uint32_t                prev_height = image->height;
+    enum gs_color_format    prev_format = image->color_format;
 
     if (!is_raw) {
         obs_log(LOG_DEBUG, "loading image from buffer");
@@ -65,16 +72,23 @@ static void gs_image_buffer_init_internal(
         );
     } else {
         obs_log(LOG_DEBUG, "loading image using raw pixel data");
-        image->texture_data      = buffer;
-        image->internal_data_buf = NULL;
-        image->internal_data_len = 0;
+        image->texture_data         = buffer;
+        image->internal_data_buf    = NULL;
+        image->internal_data_len    = 0;
+        image->width                = width;
+        image->height               = height;
+        image->color_format         = color_format;
+        image->color_space          = color_space;
     }
 
     image->alpha_mode = alpha_mode;
+    image->mem_usage  = calc_mem_usage(image);
 
-    if (mem_usage) {
-        *mem_usage = calc_mem_usage(image);
-    }
+    image->recreate_texture = !image->loaded
+        || image->width         != prev_width
+        || image->height        != prev_height
+        || image->color_format  != prev_format
+        ;
 
     image->loaded = !!image->texture_data;
     if (!image->loaded) {
@@ -90,11 +104,19 @@ void gs_image_buffer_init(
     enum gs_image_alpha_mode    alpha_mode
 ) {
     gs_image_buffer_init_internal(
-        image, (uint8_t *)buffer, length, alpha_mode, &image->mem_usage, false
+        image,
+        (uint8_t *)buffer,
+        length,
+        alpha_mode,
+        false,
+        0,
+        0,
+        0,
+        0
     );
 }
 
-void gs_image_buffer_init_raw_pixels(
+void gs_image_buffer_init_from_raw_pixels(
     gs_image_buffer_t           *image,
     uint8_t                     *buffer,
     size_t                      length,
@@ -105,16 +127,16 @@ void gs_image_buffer_init_raw_pixels(
     enum gs_color_space         color_space
 ) {
     gs_image_buffer_init_internal(
-        image, buffer, length, alpha_mode, NULL, true
+        image,
+        buffer,
+        length,
+        alpha_mode,
+        true,
+        width,
+        height,
+        color_format,
+        color_space
     );
-
-    if (image && image->loaded) {
-        image->width        = width;
-        image->height       = height;
-        image->color_format = color_format;
-        image->color_space  = color_space;
-        image->mem_usage    = calc_mem_usage(image);
-    }
 }
 
 void gs_image_buffer_free(gs_image_buffer_t *image)
@@ -123,7 +145,9 @@ void gs_image_buffer_free(gs_image_buffer_t *image)
         return;
     }
 
-    if (image->loaded) {
+    obs_log(LOG_DEBUG, "freeing image buffer");
+
+    if (image->texture) {
         gs_texture_destroy(image->texture);
     }
 
@@ -140,26 +164,28 @@ void gs_image_buffer_init_texture(gs_image_buffer_t *image)
         return;
     }
 
-    obs_log(LOG_DEBUG, "creating texture");
-    image->texture = gs_texture_create(
-        image->width,
-        image->height,
-        image->color_format,
-        1,
-        (const uint8_t **)&image->texture_data,
-        GS_DYNAMIC
-    );
+    if (image->recreate_texture) {
+        if (image->texture) {
+            obs_log(LOG_DEBUG, "destroying texture");
+            gs_texture_destroy(image->texture);
+        }
+
+        obs_log(LOG_DEBUG, "creating texture");
+        image->texture = gs_texture_create(
+            image->width,
+            image->height,
+            image->color_format,
+            1,
+            (const uint8_t **)&image->texture_data,
+            GS_DYNAMIC
+        );
+        image->recreate_texture = false;
+    } else {
+        gs_texture_set_image(image->texture, image->texture_data, image->width * 4, false);
+    }
 
     if (!image->texture) {
         obs_log(LOG_ERROR, "failed to create texture");
     }
 }
 
-void gs_image_buffer_update_texture(gs_image_buffer_t *image)
-{
-    if (!image || !image->loaded || !image->texture) {
-        return;
-    }
-
-    gs_texture_set_image(image->texture, image->texture_data, image->width * 4, false);
-}

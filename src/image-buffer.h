@@ -34,6 +34,7 @@ struct gs_image_buffer {
     enum gs_image_alpha_mode    alpha_mode;
     enum gs_color_space         color_space;
     bool                        loaded;
+    bool                        recreate_texture;
     uint8_t                     *internal_data_buf;
     size_t                      internal_data_len;
     uint64_t                    mem_usage;
@@ -48,7 +49,7 @@ void gs_image_buffer_init(
     enum gs_image_alpha_mode    alpha_mode
 );
 
-void gs_image_buffer_init_raw_pixels(
+void gs_image_buffer_init_from_raw_pixels(
     gs_image_buffer_t           *image,
     uint8_t                     *buffer,
     size_t                      length,
@@ -59,10 +60,9 @@ void gs_image_buffer_init_raw_pixels(
     enum gs_color_space         color_space
 );
 
+void gs_image_buffer_init_texture(gs_image_buffer_t *image);
 void gs_image_buffer_free(gs_image_buffer_t *image);
 
-void gs_image_buffer_init_texture(gs_image_buffer_t *image);
-void gs_image_buffer_update_texture(gs_image_buffer_t *image);
 
 #ifdef __cplusplus
 }
