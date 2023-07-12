@@ -46,6 +46,8 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${ImageMagick_MagickCore_LIB
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
   src/graphics-custom.h
   src/graphics-custom.c
+  src/image-buffer.h
+  src/image-buffer.c
   src/plugin-main.c)
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})
