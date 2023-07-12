@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.16...3.26)
 
+set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
+
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/common/bootstrap.cmake" NO_POLICY_SCOPE)
 
 project(${_name} VERSION ${_version})
@@ -36,18 +38,22 @@ endif()
 
 find_package(eCAL REQUIRED)
 find_package(Protobuf REQUIRED)
-
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE eCAL::core protobuf::libprotobuf)
 
 find_package(ImageMagick COMPONENTS MagickCore)
 include_directories(${ImageMagick_MagickCore_INCLUDE_DIRS})
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${ImageMagick_MagickCore_LIBRARY})
 
+PROTOBUF_TARGET_CPP(
+  ${CMAKE_PROJECT_NAME}
+  ${CMAKE_CURRENT_SOURCE_DIR}/obs-pipe-protos
+  ${CMAKE_CURRENT_SOURCE_DIR}/obs-pipe-protos/proto/frame.proto)
+
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
   src/graphics-custom.h
   src/graphics-custom.c
   src/image-buffer.h
   src/image-buffer.c
-  src/plugin-main.c)
+  src/plugin-main.cpp)
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})
