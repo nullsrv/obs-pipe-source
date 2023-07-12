@@ -1,0 +1,4 @@
+[submodule "obs-pipe-protos"]
+	path = obs-pipe-protos
+	url = https://github.com/nullsrv/obs-pipe-protos
+	branch = devel
