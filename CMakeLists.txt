@@ -39,6 +39,10 @@ find_package(Protobuf REQUIRED)
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE eCAL::core protobuf::libprotobuf)
 
+find_package(ImageMagick COMPONENTS MagickCore)
+include_directories(${ImageMagick_MagickCore_INCLUDE_DIRS})
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${ImageMagick_MagickCore_LIBRARY})
+
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.c)
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})
